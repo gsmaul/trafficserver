@@ -51,6 +51,8 @@ liblogging_a_SOURCES = \
   Log.h \
   LogConfig.cc \
   LogConfig.h \
+  LogDatagram.cc \
+  LogDatagram.h \
   LogFieldAliasMap.cc \
   LogFieldAliasMap.h \
   LogField.cc \

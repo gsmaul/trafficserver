@@ -29,6 +29,7 @@
 #include "libts.h"
 #include "Log.h"
 #include "LogFile.h"
+#include "LogDatagram.h"
 #include "LogFormat.h"
 #include "LogFilter.h"
 #include "LogHost.h"
@@ -100,7 +101,8 @@ public:
   LogObject(LogFormat *format, const char *log_dir, const char *basename,
                  LogFileFormat file_format, const char *header,
                  int rolling_enabled, int rolling_interval_sec = 0,
-                 int rolling_offset_hr = 0, int rolling_size_mb = 0);
+                 int rolling_offset_hr = 0, int rolling_size_mb = 0,
+				 char *datagramhost_ip = NULL, int datagramhost_port = 0);
   LogObject(LogObject &);
   virtual ~LogObject();
 
@@ -120,7 +122,9 @@ public:
   {
     size_t nfb;
 
-    if (m_logFile) {
+	if (m_logDatagram) {
+	  nfb = m_buffer_manager.flush_buffers(m_logDatagram);
+	} else if (m_logFile) {
       nfb = m_buffer_manager.flush_buffers(m_logFile);
     } else {
       nfb = m_buffer_manager.flush_buffers(&m_host_list);
@@ -189,6 +193,7 @@ public:
 public:
   LogFormat * m_format;
   LogFile *m_logFile;
+  LogDatagram *m_logDatagram;
   LogFilterList m_filter_list;
   LogHostList m_host_list;
 

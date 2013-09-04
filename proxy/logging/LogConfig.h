@@ -225,6 +225,8 @@ public:
   int rolling_size_mb;
   bool auto_delete_rolled_files;
   bool custom_logs_enabled;
+  char *datagramhost_ip;
+  int datagramhost_port;
 
   bool search_log_enabled;
   int search_rolling_interval_sec;

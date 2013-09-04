@@ -76,7 +76,8 @@ LogBufferManager::flush_buffers(LogBufferSink *sink) {
 LogObject::LogObject(LogFormat *format, const char *log_dir,
                       const char *basename, LogFileFormat file_format,
                       const char *header, int rolling_enabled,
-                      int rolling_interval_sec, int rolling_offset_hr, int rolling_size_mb)
+                      int rolling_interval_sec, int rolling_offset_hr, int rolling_size_mb,
+					  char *datagramhost_ip, int datagramhost_port)
   : m_alt_filename (NULL),
     m_flags (0),
     m_signature (0),
@@ -116,6 +117,16 @@ LogObject::LogObject(LogFormat *format, const char *log_dir,
                                  Log::config->max_line_size,
                                  Log::config->overspill_report_count));
 
+	// create a LogDatagram for this object based on XML configuration.
+	m_logDatagram = NULL;
+
+	if ((datagramhost_ip != NULL) &&
+		(strlen(datagramhost_ip) > 0)
+		)
+	{
+		m_logDatagram = NEW(new LogDatagram(datagramhost_ip, datagramhost_port));
+	}
+
     LogBuffer *b = NEW (new LogBuffer (this, Log::config->log_buffer_size));
     ink_assert(b);
     SET_FREELIST_POINTER_VERSION(m_log_buffer, b, 0);
@@ -142,6 +153,12 @@ LogObject::LogObject(LogObject& rhs)
         m_logFile = NEW (new LogFile(*(rhs.m_logFile)));
     } else {
         m_logFile = NULL;
+    }
+
+    if (rhs.m_logDatagram) {
+        m_logDatagram = NEW (new LogDatagram(*(rhs.m_logDatagram)));
+    } else {
+        m_logDatagram = NULL;
     }
 
     LogFilter *filter;
@@ -182,6 +199,13 @@ LogObject::~LogObject()
       m_host_list.clear();
     }
   }
+
+  if (m_logDatagram != NULL)
+  {
+	  delete m_logDatagram;
+	  m_logDatagram = NULL;
+  }
+
   delete m_logFile;
   ats_free(m_basename);
   ats_free(m_filename);
@@ -313,6 +337,12 @@ LogObject::add_loghost(LogHost * host, bool copy)
   if (m_logFile) {
     delete m_logFile;
     m_logFile = NULL;
+  }
+
+  if (m_logDatagram != NULL)
+  {
+	delete m_logDatagram;
+	m_logDatagram = NULL;
   }
 }
 

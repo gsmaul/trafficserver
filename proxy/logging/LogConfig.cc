@@ -150,6 +150,9 @@ LogConfig::setup_default_values()
   auto_delete_rolled_files = true;
   roll_log_files_now = false;
 
+  datagramhost_ip = NULL;
+  datagramhost_port = 0;
+
   custom_logs_enabled = false;
   xml_config_file = ats_strdup("logs_xml.config");
   hosts_config_file = ats_strdup("log_hosts.config");
@@ -948,7 +951,7 @@ LogConfig::create_pre_defined_objects_with_filter(const PreDefinedFormatInfoList
     LogObject *obj;
     obj = NEW(new LogObject(pdi->format, logfile_dir, obj_fname,
                             pdi->is_ascii ? ASCII_LOG : BINARY_LOG,
-                            pdi->header, rolling_enabled, rolling_interval_sec, rolling_offset_hr, rolling_size_mb));
+                            pdi->header, rolling_enabled, rolling_interval_sec, rolling_offset_hr, rolling_size_mb, datagramhost_ip, datagramhost_port));
 
     if (collation_mode == SEND_STD_FMTS || collation_mode == SEND_STD_AND_NON_XML_CUSTOM_FMTS) {
 
@@ -2069,6 +2072,7 @@ LogConfig::read_xml_log_config(int from_memory)
       NameList rollingIntervalSec;
       NameList rollingOffsetHr;
       NameList rollingSizeMb;
+	  NameList datagramHost;
 
       for (xattr = xobj->first(); xattr; xattr = xobj->next(xattr)) {
         Debug("xml", "XmlAttr  : <%s,%s>", xattr->tag(), xattr->value());
@@ -2096,6 +2100,8 @@ LogConfig::read_xml_log_config(int from_memory)
           rollingOffsetHr.enqueue(xattr->value());
         } else if (strcasecmp(xattr->tag(), "RollingSizeMb") == 0) {
           rollingSizeMb.enqueue(xattr->value());
+        } else if (strcasecmp(xattr->tag(), "DatagramHost") == 0) {
+          datagramHost.enqueue(xattr->value());
         } else {
           Note("Unknown attribute %s for %s; ignoring", xattr->tag(), xobj->object_name());
         }
@@ -2148,6 +2154,9 @@ LogConfig::read_xml_log_config(int from_memory)
       if (rollingSizeMb.count() > 1) {
         Note("Multiple values for 'RollingSizeMb' attribute in %s; " "using the first one", xobj->object_name());
       }
+      if (datagramHost.count() > 1) {
+        Note("Multiple values for 'DatagramHost' attribute in %s; " "using the first one", xobj->object_name());
+      }
       // create new LogObject and start adding to it
       //
 
@@ -2180,6 +2189,25 @@ LogConfig::read_xml_log_config(int from_memory)
       char *rollingSizeMb_str = rollingSizeMb.dequeue();
       int obj_rolling_size_mb = rollingSizeMb_str ? ink_atoui(rollingSizeMb_str) : rolling_size_mb;
 
+	  // datagram host
+	  //
+	  char *datagramHost_str = datagramHost.dequeue();
+	  char *obj_datagramhost_ip = NULL;
+	  int obj_datagramhost_port = 0;
+
+	  SimpleTokenizer datagramTok(':');
+
+	  if (datagramHost_str != NULL)
+	  {
+		  datagramTok.setString(datagramHost_str);
+
+		  if (datagramTok.getNumTokensRemaining() == 2)
+		  {
+			obj_datagramhost_ip = datagramTok.getNext();
+			obj_datagramhost_port = ink_atoui(datagramTok.getNext());
+		  }
+	  }
+
       // create the new object
       //
       LogObject *obj = NEW(new LogObject(fmt, logfile_dir,
@@ -2189,7 +2217,10 @@ LogConfig::read_xml_log_config(int from_memory)
                                          obj_rolling_enabled,
                                          obj_rolling_interval_sec,
                                          obj_rolling_offset_hr,
-                                         obj_rolling_size_mb));
+                                         obj_rolling_size_mb,
+										 obj_datagramhost_ip,
+										 obj_datagramhost_port
+										 ));
 
       // filters
       //

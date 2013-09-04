@@ -271,6 +271,11 @@ The following list shows the ``LogObject`` specifications.
 {#LogsXMLObjectRollingSizeMb}
     Optional
     The size at which log files are rolled.
+	
+*``&lt;DatagramHost = "IP:port"/&gt;``*
+{#LogsXMLObjectDatagramHost}
+    Optional
+    A UDP endpoint to receive logging output. A UDP packet for each log message is sent to an IP:Port instead of being added to the log file. If a collation host is defined, then log data is not sent to the datagram host. Log messages are truncated at 1400 bytes.
 
 Examples
 ========
